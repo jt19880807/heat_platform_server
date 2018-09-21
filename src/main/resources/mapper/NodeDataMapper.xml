@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.minol.repository.NodeDataMapper" >
+    <!--获取实时数据-->
+    <select id="getLastNodeData" parameterType="map" resultType="com.minol.domain.entity.NodeData">
+        SELECT b1.b_name,r.user_code,r.host_name,r.area,r.heat_met_addr,
+        CASE
+        WHEN 	r.location=1 THEN '顶层'
+        WHEN 	r.location=2 THEN '中层'
+        WHEN 	r.location=3 THEN '底层'
+        WHEN 	r.location=4 THEN '阁楼'
+        WHEN 	r.location=5 THEN '边层'
+        WHEN 	r.location=6 THEN '边顶'
+        WHEN 	r.location=7 THEN '边底'
+        WHEN 	r.location=8 THEN '地下室'
+        ELSE '其它'
+        END as location,
+        CASE
+        WHEN r.charge_mode=0 THEN '面积计费'
+        WHEN r.charge_mode=1 THEN '计量计费'
+        END AS charge_mode,
+        CASE
+        WHEN n1.battery_status=0 THEN '正常'
+        WHEN n1.battery_status=1 THEN '欠压'
+        END AS battery_status,
+        n1.add_time,
+        n1.cu_heat,
+        n1.heat_power,
+        n1.cu_flow,
+        n1.instant_flowrate,
+        n1.entrance_temp,
+        n1.exit_temp,
+        n1.diff_temp,
+        n1.hours
+        FROM node_data n1
+        INNER JOIN
+        rooms r on n1.room_id=r.id
+        INNER JOIN
+        units u1 on r.unit_id=u1.id
+        INNER JOIN
+        builds b1 on u1.build_id=b1.id
+        INNER JOIN
+        (SELECT nd.room_id,max(nd.add_time) AS add_time FROM rooms r,units u ,node_data nd
+        where r.unit_id=u.id and nd.room_id=r.id
+        AND u.build_id IN
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY room_id
+        ) AS nd ON n1.room_id = nd.room_id
+        AND n1.add_time = nd.add_time
+        AND n1.entrance_temp BETWEEN #{e0} and #{e1}
+    </select>
+    <!--获取历史数据-->
+    <select id="getHistoryNodeData" parameterType="map" resultType="com.minol.domain.entity.NodeData">
+         SELECT b1.b_name,r.user_code,r.host_name,r.area,r.heat_met_addr,
+        CASE
+        WHEN 	r.location=1 THEN '顶层'
+        WHEN 	r.location=2 THEN '中层'
+        WHEN 	r.location=3 THEN '底层'
+        WHEN 	r.location=4 THEN '阁楼'
+        WHEN 	r.location=5 THEN '边层'
+        WHEN 	r.location=6 THEN '边顶'
+        WHEN 	r.location=7 THEN '边底'
+        WHEN 	r.location=8 THEN '地下室'
+        ELSE '其它'
+        END as location,
+        CASE
+        WHEN r.charge_mode=0 THEN '面积计费'
+        WHEN r.charge_mode=1 THEN '计量计费'
+        END AS charge_mode,
+        CASE
+        WHEN n1.battery_status=0 THEN '正常'
+        WHEN n1.battery_status=1 THEN '欠压'
+        END AS battery_status,
+        n1.add_time,
+        n1.cu_heat,
+        n1.heat_power,
+        n1.cu_flow,
+        n1.instant_flowrate,
+        n1.entrance_temp,
+        n1.exit_temp,
+        n1.diff_temp,
+        n1.hours
+        FROM node_data n1
+        INNER JOIN
+        rooms r on n1.room_id=r.id
+        INNER JOIN
+        units u1 on r.unit_id=u1.id
+        INNER JOIN
+        builds b1 on u1.build_id=b1.id
+        WHERE b1.id IN
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND n1.add_time BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!--获取小区的日用量数据-->
+    <select id="getZoneDayHeat" parameterType="map" resultType="com.minol.domain.entity.UseOfHeat">
+        select  b.b_name as buildName,
+        SUM(r.area) as area,
+        nd.add_time,
+        SUM(nd.day_heat) as useHeat,
+        IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as avgHeat,
+        SUM(nd.day_flow) as useFlow
+        from node_day_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and nd.add_time=#{date}
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY b.id
+    </select>
+    <!--获取小区的日用量数据-->
+    <select id="getZoneMonthHeat" parameterType="map" resultType="com.minol.domain.entity.UseOfHeat">
+        select  b.b_name as buildName,
+        SUM(r.area) as area,
+        nd.add_time,
+        SUM(nd.month_heat) as useHeat,
+        nd.aver_energy as avgHeat,
+        SUM(nd.month_flow) as useFlow
+        from node_month_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and nd.add_time=#{date}
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY b.id
+    </select>
+
+    <!--获取楼栋的日用量数据-->
+    <select id="getBuildDayHeat" parameterType="map" resultType="com.minol.domain.entity.UseOfHeat">
+        select  r.user_code as userCode,
+        r.area as area,
+        CASE
+        WHEN r.charge_mode=0 THEN '面积计费'
+        WHEN r.charge_mode=1 THEN '计量计费'
+        END AS charge_mode,
+        CASE
+        WHEN 	r.location=1 THEN '顶层'
+        WHEN 	r.location=2 THEN '中层'
+        WHEN 	r.location=3 THEN '底层'
+        WHEN 	r.location=4 THEN '阁楼'
+        WHEN 	r.location=5 THEN '边层'
+        WHEN 	r.location=6 THEN '边顶'
+        WHEN 	r.location=7 THEN '边底'
+        WHEN 	r.location=8 THEN '地下室'
+        ELSE '其它'
+        END as location,
+        nd.add_time,
+        nd.day_heat as useHeat,
+        IFNULL(nd.day_heat/r.area,0) as avgHeat,
+        nd.day_flow as useFlow
+        from node_day_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and nd.add_time=#{date}
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+    <!--获取楼栋的日用量数据-->
+    <select id="getBuildMonthHeat" parameterType="map" resultType="com.minol.domain.entity.UseOfHeat">
+        select  r.user_code as userCode,
+        r.area as area,
+        CASE
+        WHEN r.charge_mode=0 THEN '面积计费'
+        WHEN r.charge_mode=1 THEN '计量计费'
+        END AS charge_mode,
+        CASE
+        WHEN 	r.location=1 THEN '顶层'
+        WHEN 	r.location=2 THEN '中层'
+        WHEN 	r.location=3 THEN '底层'
+        WHEN 	r.location=4 THEN '阁楼'
+        WHEN 	r.location=5 THEN '边层'
+        WHEN 	r.location=6 THEN '边顶'
+        WHEN 	r.location=7 THEN '边底'
+        WHEN 	r.location=8 THEN '地下室'
+        ELSE '其它'
+        END as location,
+        nd.add_time,
+        nd.month_heat as useHeat,
+        nd.aver_energy as avgHeat,
+        nd.month_flow as useFlow
+        from node_month_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and nd.add_time=#{date}
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <!--获取小区的历史对比数据-->
+    <select id="getZoneContrast" parameterType="map" resultType="com.minol.domain.entity.Contrast">
+        select  b.b_name as buildName,
+        IFNULL(currnt_node_data.currentHeat,0) as currentHeat,
+        IFNULL(last_node_data.lastHeat,0) as lastHeat,
+				IFNULL(before_node_data.beforeHeat,0) as beforeHeat
+        from builds b
+         left JOIN(
+        select  b.id as build_id,
+                SUM(r.area) as area,
+                SUM(nd.day_heat) as currentHeat,
+                IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as currentAvgHeat
+                from node_day_data nd,units u, rooms r,builds b
+                where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and nd.add_time BETWEEN #{startDate} and  #{endDate}
+                and b.id in
+                <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                GROUP BY b.id) currnt_node_data on b.id=currnt_node_data.build_id
+        left JOIN(
+        select  b.id as build_id,
+                SUM(r.area) as area,
+                SUM(nd.day_heat) as lastHeat,
+                IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as lastAvgHeat
+                from node_day_data nd,units u, rooms r,builds b
+                where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and
+                nd.add_time BETWEEN DATE_FORMAT( DATE_SUB( #{startDate}, INTERVAL 1 YEAR ), '%Y-%m-%d' ) and  DATE_FORMAT( DATE_SUB( #{endDate}, INTERVAL 1 YEAR ), '%Y-%m-%d' )
+                and b.id in
+                <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                GROUP BY b.id) last_node_data on b.id=last_node_data.build_id
+        left JOIN(
+        select  b.id as build_id,
+                SUM(r.area) as area,
+                SUM(nd.day_heat) as beforeHeat,
+                IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as beforeAvgHeat
+                from node_day_data nd,units u, rooms r,builds b
+                where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and
+                nd.add_time BETWEEN DATE_FORMAT( DATE_SUB( #{startDate}, INTERVAL 2 YEAR ), '%Y-%m-%d' ) and  DATE_FORMAT( DATE_SUB( #{endDate}, INTERVAL 2 YEAR ), '%Y-%m-%d' )
+                and b.id in
+                <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                GROUP BY b.id) before_node_data on b.id=before_node_data.build_id
+          where b.id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+    </select>
+    <!--获取楼栋的历史对比数据-->
+    <select id="getBuildContrast" parameterType="map" resultType="com.minol.domain.entity.Contrast">
+        select  r.user_code as userCode,
+        r.area as area,
+        CASE
+        WHEN r.charge_mode=0 THEN '面积计费'
+        WHEN r.charge_mode=1 THEN '计量计费'
+        END AS charge_mode,
+        CASE
+        WHEN 	r.location=1 THEN '顶层'
+        WHEN 	r.location=2 THEN '中层'
+        WHEN 	r.location=3 THEN '底层'
+        WHEN 	r.location=4 THEN '阁楼'
+        WHEN 	r.location=5 THEN '边层'
+        WHEN 	r.location=6 THEN '边顶'
+        WHEN 	r.location=7 THEN '边底'
+        WHEN 	r.location=8 THEN '地下室'
+        ELSE '其它'
+        END as location,
+        IFNULL(currnt_node_data.currentHeat,0) as currentHeat,
+        IFNULL(last_node_data.lastHeat,0) as lastHeat,
+        IFNULL(before_node_data.beforeHeat,0) as beforeHeat,
+        IFNULL(currnt_node_data.currentHeat,0) as currentAvgHeat,
+        IFNULL(last_node_data.lastHeat,0) as lastAvgHeat,
+        IFNULL(before_node_data.beforeHeat,0) as beforeAvgHeat
+        from  rooms r
+        LEFT JOIN units u on r.unit_id=u.id
+        LEFT JOIN builds b on u.build_id=b.id
+        left JOIN(
+        select  r.id as room_id,
+        SUM(nd.day_heat) as currentHeat,
+        IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as currentAvgHeat
+        from node_day_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and nd.add_time BETWEEN #{startDate} and  #{endDate}
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY r.id) currnt_node_data on r.id=currnt_node_data.room_id
+        left JOIN(
+        select  r.id as room_id,
+        SUM(nd.day_heat) as lastHeat,
+        IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as lastAvgHeat
+        from node_day_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and
+        nd.add_time BETWEEN DATE_FORMAT( DATE_SUB( #{startDate}, INTERVAL 1 YEAR ), '%Y-%m-%d' ) and  DATE_FORMAT( DATE_SUB(#{endDate}, INTERVAL 1 YEAR ), '%Y-%m-%d' )
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY r.id) last_node_data on r.id=last_node_data.room_id
+        left JOIN(
+        select  r.id as room_id,
+        SUM(nd.day_heat) as beforeHeat,
+        IFNULL(SUM(nd.day_heat)/SUM(r.area),0) as beforeAvgHeat
+        from node_day_data nd,units u, rooms r,builds b
+        where nd.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and
+        nd.add_time BETWEEN DATE_FORMAT( DATE_SUB( #{startDate}, INTERVAL 2 YEAR ), '%Y-%m-%d' ) and  DATE_FORMAT( DATE_SUB( #{endDate}, INTERVAL 2 YEAR ), '%Y-%m-%d' )
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY r.id) before_node_data on r.id=before_node_data.room_id
+        WHERE b.id IN
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+</mapper>

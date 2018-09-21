@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.minol.repository.ProjectMapper" >
+    <resultMap id="projectMap_Province" type="com.minol.domain.model.ProjectMap">
+        <result column="province" property="name"/>
+        <!--<result column="district" property="district"/>-->
+    </resultMap>
+    <!--表名 -->
+    <sql id="tableName">
+        core_user
+    </sql>
+
+    <sql id="field">
+        company_id,
+        source_plant_id,
+        exchange_station_id,
+        zone_id,
+        build_id,
+        company_name,
+        source_plant_name,
+        exchange_station_name,
+        zone_name,
+        build_name,
+        build_num
+    </sql>
+
+    <!--根据楼栋ID查询项目信息-->
+    <select id="getProjectsByBuildIds"  parameterType="Map" resultType="com.minol.domain.entity.ProjectTree">
+        SELECT * FROM company_source_exchange_zone_build_view
+        <if test="buildIds!= '*'">
+            WHERE build_id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+    <!--根据楼栋ID查询项目基础信息，各种项目的数量-->
+    <select id="getProjectBaseInfoByBuildIds"  parameterType="Map" resultType="com.minol.domain.entity.ProjectBaseInfo">
+        select count(DISTINCT(cv.company_id)) as company_count,
+        count(DISTINCT(cv.source_plant_id)) as source_plant_count,
+        count(DISTINCT(cv.exchange_station_id)) as exchange_station_count,
+        count(DISTINCT(cv.zone_id)) as zone_count,
+        count(DISTINCT(cv.build_id)) as build_count,
+        (select SUM(r.area) from rooms r, units u where r.unit_id=u.id
+            <if test="buildIds!= '*'">
+                AND u.build_id IN
+                <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        ) as totalArea,
+        (select SUM(r.area) from rooms r, units u where r.unit_id=u.id and r.is_supply=1
+            <if test="buildIds!= '*'">
+                AND u.build_id IN
+                <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        ) as heatArea
+        from company_source_exchange_zone_build_view cv
+        <if test="buildIds!= '*'">
+            where cv.build_id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+    <!--根据省份获取下面指定楼栋的基础信息，各种项目的数量-->
+    <select id="getProjectBaseInfoByBuildIdAndProvince"  parameterType="Map" resultType="com.minol.domain.entity.ProjectBaseInfo">
+        select count(DISTINCT(cv.company_id)) as company_count,
+        count(DISTINCT(cv.source_plant_id)) as source_plant_count,
+        count(DISTINCT(cv.exchange_station_id)) as exchange_station_count,
+        count(DISTINCT(cv.zone_id)) as zone_count,
+        count(DISTINCT(cv.build_id)) as build_count
+        from company_source_exchange_zone_build_view cv
+        where province=#{province}
+        <if test="buildIds!= '*'">
+            And cv.build_id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+
+    </select>
+    <!--根据楼栋ID获取所有的省份-->
+    <select id="getProvinceByBuildIds" parameterType="Map" resultMap="projectMap_Province">
+      SELECT DISTINCT(cv.province) FROM company_source_exchange_zone_build_view cv
+        <if test="buildIds!= '*'">
+            WHERE build_id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+    <!--获取指定项目类型的楼栋ID-->
+    <select id="getBuilds" parameterType="Map" resultType="java.lang.Integer">
+      SELECT cv.build_id from company_source_exchange_zone_build_view cv
+        WHERE 1=1
+        <if test="buildIds!= '*'">
+            And cv.build_id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="type== 0">
+            And company_name=#{name}
+        </if>
+        <if test="type== 1">
+            And source_plant_name=#{name}
+        </if>
+        <if test="type== 2">
+            And exchange_station_name=#{name}
+        </if>
+        <if test="type== 3">
+            And zone_name=#{name}
+        </if>
+        <if test="type==4">
+            And CONCAT(cv.zone_name,cv.build_name)=#{name}
+        </if>
+    </select>
+    <!--获取户数和面积-->
+    <select id="getHouseholdsAndArea"  parameterType="Map" resultType="com.minol.domain.entity.ProjectBaseInfo">
+        select SUM(r.area) as totalArea,
+        sum(IF(r.is_supply=1,r.area,0)) as heatArea,
+        count(r.id) as totalUser,
+        count(r.is_supply=1 or NULL) as heatUser
+        from rooms r, units u where r.unit_id=u.id
+        AND u.build_id IN
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+          #{item}
+        </foreach>
+
+    </select>
+    <!--获取耗热量和面积-->
+    <select id="getAreaHeat" parameterType="map" resultType="com.minol.domain.entity.UseHeaAndArea">
+        select SUM(r.area) as v1,
+                sum(IF(r.location=1,r.area,0)) as v2,
+                sum(IF(r.location=5,r.area,0)) as v3
+                from rooms r,units u where r.unit_id=u.id
+        AND u.build_id IN
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        UNION
+        select sum(nd.day_heat) as v1,
+                        sum(IF(r.location=1,nd.day_heat,0)) as v2,
+                        sum(IF(r.location=5,nd.day_heat,0)) as v3
+                from rooms r,units u ,node_day_data nd where r.unit_id=u.id and nd.room_id=r.id
+        AND u.build_id IN
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND nd.add_time BETWEEN #{startDate} AND #{endDate}
+    </select>
+    <!--进水温度分析-->
+    <select id="entrance_temp_analyse" parameterType="map" resultType="com.minol.domain.entity.EntranceTempAnalyse">
+        SELECT sum(case when entrance_temp &lt; 40 then 1 else 0 end) low_40,
+        sum(case when entrance_temp >= 40 and entrance_temp &lt; 50 then 1 else 0 end) low_50,
+        sum(case when entrance_temp >= 50 and entrance_temp &lt;60 then 1 else 0 end) low_60,
+        sum(case when entrance_temp >= 60 then 1 else 0 end) up_60
+        FROM
+        (
+        SELECT n1.* FROM node_data n1
+        INNER JOIN
+        (SELECT nd.room_id,max(nd.add_time) AS add_time FROM rooms r,units u ,node_data nd
+            where r.unit_id=u.id and nd.room_id=r.id
+            AND u.build_id IN
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        GROUP BY room_id
+        ) AS nd ON n1.room_id = nd.room_id
+        AND n1.add_time = nd.add_time
+        ) AS n
+    </select>
+
+</mapper>

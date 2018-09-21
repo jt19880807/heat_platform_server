@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.minol.repository.UserMapper" >
+    <!--数据全部-->
+    <resultMap id="AreaResult" type="com.minol.domain.entity.Core_User">
+        <id column="pkUserId" property="pkUserId"/>
+        <result column="fkModelId" property="fkModelId"/>
+        <result column="fkGradeId" property="fkGradeId"/>
+        <result column="username" property="username"/>
+        <result column="mobile" property="mobile"/>
+        <result column="password" property="password"/>
+        <result column="salt" property="salt"/>
+        <result column="state" property="state"/>
+        <result column="registerTime" property="registerTime"/>
+        <result column="registerIp" property="registerIp"/>
+        <result column="lastLoginTime" property="lastLoginTime"/>
+        <result column="lastLoginIp" property="lastLoginIp"/>
+        <result column="currentLoginTime" property="currentLoginTime"/>
+        <result column="currentLoginIp" property="currentLoginIp"/>
+        <result column="loginCount" property="loginCount"/>
+        <result column="errorCount" property="errorCount"/>
+        <result column="createDatetime" property="createDatetime"/>
+        <result column="updateDatetime" property="updateDatetime"/>
+        <result column="exattribute" property="exattribute"/>
+    </resultMap>
+    <!--下拉框返回结果-->
+    <!--<resultMap id="AreaResult_Select" type="com.minol.domain.entity.Core_User">-->
+        <!--<id column="id" property="pkUserId"/>-->
+        <!--<result column="name" property="username"/>-->
+    <!--</resultMap>-->
+    <!--表名 -->
+    <sql id="tableName">
+        core_user
+    </sql>
+
+    <sql id="field">
+           pkUserId,// 主键ID
+    fkModelId,// 模型表_主键ID
+    fkGradeId,// 级别表_主键ID
+    username,// 用户名称
+   email,// 邮箱
+   mobile,// 手机
+    password,// 密码
+    salt,// 加密码
+   state,// 状态(0:锁定 1:正常 2:待验证)
+    registerTime,// 注册时间
+    registerIp,// 注册IP
+    registerMode,// 注册方式(1:前台注册 2:后台添加 3:其它)
+   lastLoginTime,// 最后登录时间
+    lastLoginIp,// 最后登录IP
+    currentLoginTime,// 当前登录时间
+   currentLoginIp,// 当前登录IP
+    loginCount,// 登录次数
+    errorCount,// 错误次数
+    createDatetime,// 创建时间
+     updateDatetime,// 修改时间
+    exattribute,// 备用字段
+    </sql>
+
+    <sql id="fieldValue">
+        #{name},
+        #{district},
+        #{address},
+        #{isdeleted},
+        #{create_time},
+        #{update_time},
+        #{create_by},
+        #{update_by}
+    </sql>
+
+    <!--根据主键ID查询小区信息-->
+    <select id="getUserByName"  parameterType="string" resultType="com.minol.domain.entity.Core_User">
+        SELECT * FROM <include refid="tableName"></include> WHERE username=#{userName}
+    </select>
+
+
+
+    <!--<select id="selectAreaWithIDAndName" parameterType="Map" resultMap="AreaResult_Select">-->
+        <!--<if test="projectIds!= '*'"> &lt;!&ndash;搜索指定的id&ndash;&gt;-->
+            <!--SELECT DISTINCT (a.id),a.name from area a-->
+            <!--LEFT JOIN building b ON b.area_id=a.id-->
+            <!--LEFT JOIN project p ON b.project_id=p.id-->
+            <!--where-->
+            <!--p.id IN-->
+            <!--<foreach item="item" index="index" collection="projectIds" open="(" separator="," close=")">-->
+                <!--#{item}-->
+            <!--</foreach>-->
+            <!--AND-->
+            <!--b.isdeleted=0-->
+        <!--</if>-->
+        <!--<if test="projectIds=='*'">-->
+            <!--SELECT id,name from area WHERE isdeleted=0-->
+        <!--</if>-->
+
+    <!--</select>-->
+
+    <!--&lt;!&ndash;查询指定带有搜索关键字的项目&ndash;&gt;-->
+    <!--<select id="selectAreas" parameterType="Map" resultMap="AreaResult">-->
+        <!--SELECT * from <include refid="tableName"></include> where-->
+        <!--<if test="keywords!= null and keywords != ''">&lt;!&ndash;关键词搜索&ndash;&gt;-->
+            <!--(-->
+            <!--name LIKE CONCAT(CONCAT('%', #{keywords}),'%')-->
+            <!--or-->
+            <!--district LIKE CONCAT(CONCAT('%', #{keywords}),'%')-->
+            <!--or-->
+            <!--address LIKE CONCAT(CONCAT('%', #{keywords}),'%')-->
+            <!--) AND-->
+        <!--</if>-->
+        <!--isdeleted=0-->
+    <!--</select>-->
+
+    <!--&lt;!&ndash;批量删除&ndash;&gt;-->
+    <!--<update id="batchDeleteAreas" parameterType="java.util.List">-->
+        <!--UPDATE <include refid="tableName"></include>-->
+        <!--SET isdeleted=1-->
+        <!--WHERE id in-->
+        <!--<foreach item="item" index="index" collection="list" open="(" separator="," close=")">-->
+            <!--#{item.id}-->
+        <!--</foreach>-->
+    <!--</update>-->
+
+    <!--&lt;!&ndash;插入一条项目信息&ndash;&gt;-->
+    <!--<insert id="insertArea" parameterType="com.minol.energymonitor.domain.entity.Area">-->
+        <!--INSERT <include refid="tableName"></include> (-->
+        <!--<include refid="field"></include>-->
+        <!--) VALUES (-->
+        <!--<include refid="fieldValue"></include>-->
+        <!--)-->
+    <!--</insert>-->
+
+    <!--&lt;!&ndash;修改项目信息&ndash;&gt;-->
+    <!--<update id="updateArea" parameterType="com.minol.energymonitor.domain.entity.Area">-->
+        <!--UPDATE <include refid="tableName"></include>-->
+        <!--SET  name=#{name},-->
+        <!--district=#{district},-->
+        <!--address=#{address},-->
+        <!--isdeleted=#{isdeleted},-->
+        <!--update_by=#{update_by}-->
+        <!--WHERE id=#{id}-->
+    <!--</update>-->
+
+</mapper>
