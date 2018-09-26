@@ -1,7 +1,7 @@
 package com.minol.domain.entity;
 
 /**
- * 用热量
+ * 对比数据
  */
 public class Contrast {
     private String buildName;
@@ -12,6 +12,8 @@ public class Contrast {
     private Double currentAvgHeat;
     private Double lastAvgHeat;
     private Double beforeAvgHeat;
+    private Double area;
+    private String location;
 
     public String getBuildName() {
         return buildName;
@@ -75,5 +77,21 @@ public class Contrast {
 
     public void setBeforeAvgHeat(Double beforeAvgHeat) {
         this.beforeAvgHeat = beforeAvgHeat;
+    }
+
+    public Double getArea() {
+        return area;
+    }
+
+    public void setArea(Double area) {
+        this.area = area;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 }

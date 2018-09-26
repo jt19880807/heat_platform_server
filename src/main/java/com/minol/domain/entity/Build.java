@@ -1,10 +1,11 @@
 package com.minol.domain.entity;
 
-public class Build {
+public class Build extends Zone {
     private Integer id;
     private Integer zone_id;
     private String b_name;
     private Integer b_num;
+    private Double area;
 
     public Integer getId() {
         return id;
@@ -36,5 +37,13 @@ public class Build {
 
     public void setB_num(Integer b_num) {
         this.b_num = b_num;
+    }
+
+    public Double getArea() {
+        return area;
+    }
+
+    public void setArea(Double area) {
+        this.area = area;
     }
 }
