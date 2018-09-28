@@ -309,4 +309,37 @@
         </foreach>
     </select>
 
+    <!--获取报警数量-->
+    <select id="getNodeAlermCount" parameterType="map" resultType="com.minol.domain.entity.Node_alerm">
+        select a.id, a.`name`,
+        IFNULL(alerm_count.room_count,0) as room_count from alerm_type a
+        LEFT JOIN(
+            SELECT n.alerm_type, COUNT(n.room_id) as room_count from node_alerm n,rooms r,units u, builds b
+          where n.room_id=r.id and r.unit_id=u.id and u.build_id=b.id
+            and b.id in
+            <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+          GROUP BY n.alerm_type
+        ) alerm_count on alerm_count.alerm_type=a.id
+    </select>
+    <!--获取住户报警信息-->
+    <select id="getNodeAlermInfo" parameterType="map" resultType="com.minol.domain.entity.Node_alerm">
+        select z.z_name,b.b_name,r.user_code ,
+        a.`name` as alerm_type,n.alerm_startime as alerm_time
+        from zones z,builds b,units u,rooms r,node_alerm n,alerm_type a
+        where n.room_id=r.id and r.unit_id=u.id and u.build_id=b.id and b.zone_id=z.id AND n.alerm_type=a.id
+        and b.id in
+        <foreach item="item" index="index" collection="buildIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        <if test="alermType!=0">
+            and a.id=#{alermType}
+        </if>
+
+    </select>
+
+    <select id="getAlermTypes" parameterType="map" resultType="com.minol.domain.entity.Node_alerm">
+        select * from alerm_type
+    </select>
 </mapper>

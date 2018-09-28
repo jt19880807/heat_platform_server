@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.minol.repository.BillMapper" >
+    <!--获取实时数据-->
+    <select id="getBillData" parameterType="map" resultType="com.minol.domain.entity.Room">
+      select z.z_name,b.b_name,CONCAT(u.u_name, '-', r.r_name) 'r_name',r.user_type
+        from rooms r
+        left JOIN units u on r.unit_id=u.id
+        LEFT JOIN builds b on u.build_id=b.id
+        LEFT JOIN zones z on b.zone_id=z.id
+        LEFT JOIN (
+            select
+                CASE WHEN `rooms`.`user_type` = 2 THEN `public_fixed_price`
+                     WHEN `rooms`.`user_type` = 1 THEN `comm_fixed_price`
+                     ELSE `fixed_hfee_uprice` END AS 'price'
+                from rate r where
+        )
+    </select>
+    <!--获取大表的能耗分析-->
+    <select id="getBuildMeterECA" parameterType="map" resultType="com.minol.domain.entity.MeterECA">
+         select z.z_name,b.b_name,ml.meter_addr,room_info.area, meter_use.maxHeat,meter_use.minHeat,meter_use.useHeat,
+        ROUND(IFNULL(meter_use.useHeat/room_info.area,0),2) as avgHeat,
+        ROUND(meter_use.avg_in_temp,2) as avg_in_temp,
+        ROUND(meter_use.avg_out_temp,2) as avg_out_temp
+        from meter_sub ms
+        LEFT JOIN meter_list ml on ms.meter_id=ml.id
+        LEFT JOIN builds b on ms.sub_id=b.id
+        LEFT JOIN zones z on ml.zone_id=z.id
+        LEFT JOIN (
+            select b.id,SUM(r.area) as area from builds b,units u,rooms r
+          where r.unit_id=u.id and u.build_id=b.id
+            GROUP BY b.id
+        ) as room_info on b.id=room_info.id
+        LEFT JOIN (
+            select md.meter_id, MAX(md.cu_heat) as maxHeat,
+           MIN(md.cu_heat) as minHeat,
+          (MAX(md.cu_heat)-MIN(md.cu_heat)) AS useHeat,
+            avg(md.entrance_temp) avg_in_temp,
+            avg(md.exit_temp) avg_out_temp
+            FROM meter_data md
+          where md.meter_datatime BETWEEN #{startDate} and #{endDate}
+          GROUP BY md.meter_id
+        ) as meter_use on meter_use.meter_id=ml.id
+        WHERE
+        z.id = #{zoneId}
+        <if test="buildId!=null">
+            AND b.id=#{buildId}
+        </if>
+        <if test="meterId!=null">
+            AND ml.meter_id=#{meterId}
+        </if>
+    </select>
+
+</mapper>

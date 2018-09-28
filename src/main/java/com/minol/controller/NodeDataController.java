@@ -1,5 +1,6 @@
 package com.minol.controller;
 
+import com.alibaba.druid.support.json.JSONUtils;
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -262,5 +263,63 @@ public class NodeDataController {
             buildContrasts = nodeDataService.getBuildContrast(map);
         }
         return new PageInfo<Contrast>(buildContrasts);
+    }
+
+    @GetMapping("/nodeAlermCount")
+    public JSONObject getNodeAlermCount(@RequestParam  String buildIds,
+                                               @RequestParam Integer type,
+                                               @RequestParam String name
+                                        ){
+        Map<String, Object> map = new HashMap<String, Object>();
+        if(buildIds.equals("*")) {
+            map.put("buildIds", '*');
+        }else {
+            map.put("buildIds",buildIds.split(","));
+        }
+        map.put("type",type);
+        map.put("name",name);
+        List<Node_alerm> node_alerms=new ArrayList<>();
+        List<Integer> builds = projectService.getBuilds(map);
+        if (builds.size()>0) {
+            String[] strBuilds = new String[builds.size()];
+            Integer[] inBuilds = new Integer[builds.size()];
+            map.put("buildIds", builds.toArray(inBuilds));
+            node_alerms = nodeDataService.getNodeAlermCount(map);
+        }
+        return JsonUtils.fillResultString(0,"成功",node_alerms);
+    }
+    @GetMapping("/nodeAlermInfo")
+    public PageInfo<Node_alerm> getNodeAlermInfo(@RequestParam  String buildIds,
+                                                 @RequestParam Integer type,
+                                                 @RequestParam String name,
+                                                 @RequestParam String alermType,
+                                                 @RequestParam int num,
+                                                 @RequestParam int size){
+        Map<String, Object> map = new HashMap<String, Object>();
+        if(buildIds.equals("*")) {
+            map.put("buildIds", '*');
+        }else {
+            map.put("buildIds",buildIds.split(","));
+        }
+        map.put("type",type);
+        map.put("name",name);
+        List<Node_alerm> node_alerms=new ArrayList<>();
+        List<Integer> builds = projectService.getBuilds(map);
+        PageHelper.startPage(num,size);
+        if (builds.size()>0) {
+            String[] strBuilds = new String[builds.size()];
+            Integer[] inBuilds = new Integer[builds.size()];
+            map.put("buildIds", builds.toArray(inBuilds));
+            map.put("alermType", alermType);
+            node_alerms = nodeDataService.getNodeAlermInfo(map);
+        }
+        return new PageInfo<Node_alerm>(node_alerms);
+    }
+
+    @GetMapping("/alermTypes")
+    public JSONObject getAlermTypes(){
+        Map<String, Object> map = new HashMap<String, Object>();
+        List<Node_alerm> node_alerms=nodeDataService.getAlermTypes(map);
+       return JsonUtils.fillResultString(0,"成功",node_alerms);
     }
 }

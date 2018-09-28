@@ -1,7 +1,6 @@
 package com.minol.repository;
 
 import com.minol.domain.entity.*;
-import com.minol.domain.model.ProjectMap;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 
@@ -19,4 +18,7 @@ public interface NodeDataMapper {
     List<UseOfHeat> getBuildMonthHeat(Map map);
     List<Contrast> getZoneContrast(Map map);
     List<Contrast> getBuildContrast(Map map);
+    List<Node_alerm> getNodeAlermCount(Map map);
+    List<Node_alerm> getNodeAlermInfo(Map map);
+    List<Node_alerm> getAlermTypes(Map map);
 }

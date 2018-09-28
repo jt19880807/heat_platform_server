@@ -22,4 +22,7 @@ public class NodeDataService {
     public List<UseOfHeat> getBuildMonthHeat(Map map){return nodeDataMapper.getBuildMonthHeat(map);}
     public List<Contrast> getZoneContrast(Map map){return nodeDataMapper.getZoneContrast(map);}
     public List<Contrast> getBuildContrast(Map map){return nodeDataMapper.getBuildContrast(map);}
+    public List<Node_alerm> getNodeAlermCount(Map map){return nodeDataMapper.getNodeAlermCount(map);}
+    public List<Node_alerm> getNodeAlermInfo(Map map){return nodeDataMapper.getNodeAlermInfo(map);}
+    public List<Node_alerm> getAlermTypes(Map map){return nodeDataMapper.getAlermTypes(map);}
 }
